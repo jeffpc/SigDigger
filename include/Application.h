@@ -23,6 +23,8 @@
 #include <Suscan/Source.h>
 #include <Suscan/Analyzer.h>
 
+#include "analyzer/sink.h"
+
 /* Local includes */
 #include "AppConfig.h"
 #include "UIMediator.h"
@@ -104,8 +106,8 @@ namespace SigDigger {
     void connectDeviceDetect(void);
     void connectScanner(void);
 
-    int  openCaptureFile(void);
-    void installDataSaver(int fd);
+    struct suscan_sink *openCaptureFile(bool with_meta);
+    void installDataSaver(struct suscan_sink *sink);
     void uninstallDataSaver(void);
     bool openAudioFileSaver(void);
     void closeAudioFileSaver(void);

@@ -20,6 +20,8 @@
 #ifndef ASYNCDATASAVER_H
 #define ASYNCDATASAVER_H
 
+#include "analyzer/sink.h"
+
 #include "GenericDataSaver.h"
 
 namespace SigDigger {
@@ -31,7 +33,7 @@ namespace SigDigger {
     FileDataWriter *writer = nullptr;
 
   public:
-    FileDataSaver(int fd, QObject *parent = nullptr);
+    FileDataSaver(struct suscan_sink *sink, QObject *parent = nullptr);
     ~FileDataSaver();
   };
 }

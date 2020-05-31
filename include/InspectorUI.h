@@ -30,6 +30,8 @@
 #include <sys/time.h>
 #include <SocketForwarder.h>
 
+#include "analyzer/sink.h"
+
 #include "ThrottleableWidget.h"
 #include "Decider.h"
 #include "Palette.h"
@@ -112,7 +114,7 @@ namespace SigDigger {
     unsigned int getHScrollOffset(void) const;
     void refreshVScrollBar(void) const;
     void refreshHScrollBar(void) const;
-    int fd = -1;
+    struct suscan_sink *sink = nullptr;
 
     public:
       InspectorUI(

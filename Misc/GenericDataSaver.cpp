@@ -227,6 +227,8 @@ GenericDataSaver::write(const SUCOMPLEX *data, size_t size)
       data,
       size * sizeof(SUCOMPLEX));
 
+    // Stash metadata about this blob of data
+
     this->ptr += size;
 
     if (this->ptr > totalSize / 2) {

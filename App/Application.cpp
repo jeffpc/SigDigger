@@ -177,10 +177,10 @@ Application::connectAudioFileSaver()
 
 
 void
-Application::installDataSaver(int fd)
+Application::installDataSaver(struct suscan_sink *sink)
 {
   if (this->dataSaver.get() == nullptr && this->analyzer.get() != nullptr) {
-    this->dataSaver = std::make_unique<FileDataSaver>(fd, this);
+    this->dataSaver = std::make_unique<FileDataSaver>(sink, this);
     this->dataSaver->setSampleRate(
           this->mediator->getProfile()->getDecimatedSampleRate());
     if (!this->filterInstalled) {
@@ -732,9 +732,9 @@ Application::startCapture(void)
 
       // If there is a capture file configured, install data saver
       if (this->ui.sourcePanel->getRecordState()) {
-        int fd = this->openCaptureFile();
-        if (fd != -1)
-          this->installDataSaver(fd);
+        auto sink = this->openCaptureFile(false);
+	if (sink)
+          this->installDataSaver(sink);
       }
 
       this->connectAnalyzer();
@@ -1137,11 +1137,12 @@ Application::onThrottleConfigChanged(void)
 
 //
 // sigdigger_XXXXXXXX_XXXXXXZ_XXXXXXXXXX_XXXXXXXXXXXXXXXXXXXX_float32_iq.raw
+// sigdigger_XXXXXXXX_XXXXXXZ_XXXXXXXXXX_XXXXXXXXXXXXXXXXXXXX_float32_iq.meta
 //
-int
-Application::openCaptureFile(void)
+struct suscan_sink *
+Application::openCaptureFile(bool with_meta)
 {
-  int fd = -1;
+  struct suscan_sink *sink;
   char baseName[80];
   char datetime[17];
   time_t unixtime;
@@ -1154,15 +1155,19 @@ Application::openCaptureFile(void)
   snprintf(
         baseName,
         sizeof(baseName),
-        "sigdigger_%s_%d_%.0lf_float32_iq.raw",
+        "sigdigger_%s_%d_%.0lf_float32_iq",
         datetime,
         this->mediator->getProfile()->getDecimatedSampleRate(),
         this->mediator->getProfile()->getFreq());
 
-  std::string fullPath =
+  std::string pathPrefix =
       this->ui.sourcePanel->getRecordSavePath() + "/" + baseName;
+  std::string dataPath = pathPrefix + ".raw";
+  std::string metaPath = pathPrefix + ".meta";
 
-  if ((fd = creat(fullPath.c_str(), 0600)) == -1) {
+  sink = suscan_sink_open(dataPath.c_str(),
+                          with_meta ? metaPath.c_str() : NULL);
+  if (!sink) {
     QMessageBox::warning(
               this,
               "SigDigger error",
@@ -1171,7 +1176,7 @@ Application::openCaptureFile(void)
               QMessageBox::Ok);
   }
 
-  return fd;
+  return sink;
 }
 
 void
@@ -1179,11 +1184,11 @@ Application::onToggleRecord(void)
 {
   if (this->ui.sourcePanel->getRecordState()) {
     if (this->mediator->getState() == UIMediator::RUNNING) {
-      int fd = this->openCaptureFile();
-      if (fd != -1)
-        this->installDataSaver(fd);
+      auto sink = this->openCaptureFile(true);
+      if (sink)
+        this->installDataSaver(sink);
 
-      this->ui.sourcePanel->setRecordState(fd != -1);
+      this->ui.sourcePanel->setRecordState(sink != NULL);
     }
   } else {
     this->uninstallDataSaver();

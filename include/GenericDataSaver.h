@@ -67,6 +67,7 @@ namespace SigDigger {
       Q_OBJECT
 
       std::vector<SUCOMPLEX>buffers[2];
+      // TODO: add a vector of metadata structs (2x)
       QString lastError;
 
       unsigned int rateHint;

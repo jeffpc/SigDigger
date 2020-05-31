@@ -560,8 +560,8 @@ InspectorUI::installDataSaver(void)
 {
   if (this->dataSaver == nullptr) {
     std::string path = this->captureFileName();
-    this->fd = open(path.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0600);
-    if (this->fd == -1) {
+    this->sink = suscan_sink_open(path.c_str(), NULL);
+    if (this->sink == nullptr) {
       std::string path;
 
       path = "Failed to open capture file <pre>" +
@@ -578,7 +578,7 @@ InspectorUI::installDataSaver(void)
       return false;
     }
 
-    this->dataSaver = new FileDataSaver(this->fd, this);
+    this->dataSaver = new FileDataSaver(this->sink, this);
     this->recordingRate = this->getBaudRate();
     this->dataSaver->setSampleRate(recordingRate);
     connectDataSaver();
@@ -596,9 +596,9 @@ InspectorUI::uninstallDataSaver(void)
     this->dataSaver->deleteLater();
   this->dataSaver = nullptr;
 
-  if (this->fd != -1) {
-    close(this->fd);
-    this->fd = -1;
+  if (this->sink) {
+    suscan_sink_close(this->sink);
+    this->sink = nullptr;
   }
 }
 

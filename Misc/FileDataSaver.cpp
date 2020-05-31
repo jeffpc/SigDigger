@@ -24,16 +24,17 @@ using namespace SigDigger;
 
 namespace SigDigger {
   class FileDataWriter : public GenericDataWriter {
-    int fd = -1;
+    struct suscan_sink *sink;
     std::string lastError;
 
   public:
-    FileDataWriter(int fd);
+    FileDataWriter(struct suscan_sink *sink);
 
     bool prepare(void);
     bool canWrite(void) const;
     std::string getError(void) const;
     ssize_t write(const SUCOMPLEX *data, size_t len);
+    ssize_t write_blob(const void *data, size_t len);
     bool close(void);
     ~FileDataWriter();
   };
@@ -51,15 +52,15 @@ FileDataWriter::prepare(void)
   return true;
 }
 
-FileDataWriter::FileDataWriter(int fd)
+FileDataWriter::FileDataWriter(struct suscan_sink *sink)
 {
-  this->fd = fd;
+  this->sink = sink;
 }
 
 bool
 FileDataWriter::canWrite(void) const
 {
-  return this->fd != -1;
+  return this->sink != NULL;
 }
 
 ssize_t
@@ -67,15 +68,15 @@ FileDataWriter::write(const SUCOMPLEX *data, size_t len)
 {
   ssize_t result;
 
-  if (this->fd == -1)
+  if (!this->sink)
     return 0;
 
-  result = ::write(this->fd, data, len * sizeof(*data));
+  result = suscan_sink_write(this->sink, data, len);
 
   if (result < 1)
     lastError = "write() failed: " + std::string(strerror(errno));
 
-  return result / static_cast<ssize_t>(sizeof(*data));
+  return result;
 }
 
 bool
@@ -83,9 +84,9 @@ FileDataWriter::close(void)
 {
   bool ok = true;
 
-  if (this->fd != -1) {
-    ok = ::close(this->fd) == 0;
-    this->fd = -1;
+  if (this->sink) {
+    suscan_sink_close(this->sink);
+    this->sink = nullptr;
   }
 
   return ok;
@@ -97,8 +98,8 @@ FileDataWriter::~FileDataWriter(void)
 }
 
 //////////////////////////// FileDataSaver /////////////////////////////////////
-FileDataSaver::FileDataSaver(int fd, QObject *parent) :
-  GenericDataSaver(this->writer = new FileDataWriter(fd), parent)
+FileDataSaver::FileDataSaver(struct suscan_sink *sink, QObject *parent) :
+  GenericDataSaver(this->writer = new FileDataWriter(sink), parent)
 {
 }
 
